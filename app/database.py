@@ -1,33 +1,48 @@
 
+import os
+
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
+load_dotenv()
 
-# 1. Database URL
-DATABASE_URL = "sqlite:///./login.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./login.db")
 
+# Convert Render's PostgreSQL URL into SQLAlchemy's psycopg format
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgres://",
+        "postgresql+psycopg://",
+        1
+    )
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+psycopg://",
+        1
+    )
 
-# 2. Create database engine
+# SQLite needs a special connection argument
+connect_args = {}
+
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args=connect_args
 )
 
-
-# 3. Create database session factory
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine
 )
 
-
-# 4. Create Base class
 class Base(DeclarativeBase):
     pass
 
-
-# 5. Database dependency
 def get_db():
     db = SessionLocal()
     try:
